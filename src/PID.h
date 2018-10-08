@@ -1,6 +1,8 @@
 #ifndef PID_H
 #define PID_H
 
+#include <uWS/uWS.h>
+
 class PID {
 public:
   /*
@@ -13,9 +15,28 @@ public:
   /*
   * Coefficients
   */ 
-  double Kp;
-  double Ki;
-  double Kd;
+  double p[3];
+
+  /*
+  * Coefficients
+  */
+  double dp[3];
+
+//  Twiddle parameters
+	int max_trial_count;
+	int min_thresold_sum_of_dp;
+	int initial_steps_to_skip;
+	int current_step;
+	int max_steps_to_compute_total_error;
+	int current_trial_count;
+
+	int param_index_to_tune;
+
+	double total_error, best_error;
+	bool first_run;
+	bool twiddle_is_enabled;
+	bool added_dp, subtracted_dp;
+
 
   /*
   * Constructor
@@ -30,17 +51,24 @@ public:
   /*
   * Initialize PID.
   */
-  void Init(double Kp, double Ki, double Kd);
+  void Init(double p[]);
+
+  void Init( double p[], double dp[] );
+
+  void ResetErrors();
 
   /*
   * Update the PID error variables given cross track error.
   */
-  void UpdateError(double cte);
+  void UpdateError(double cte, uWS::WebSocket<uWS::SERVER> ws);
 
   /*
   * Calculate the total PID error.
   */
   double TotalError();
+
+//  Restart from the initial position
+  void Restart(uWS::WebSocket<uWS::SERVER> ws);
 };
 
 #endif /* PID_H */
