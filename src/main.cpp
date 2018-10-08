@@ -34,12 +34,13 @@ int main()
 
   PID pid;
   // TODO: Initialize the pid variable.
-  pid.Init(0.4, 0.001, 3.0);
+  pid.Init(0.1, 0.0, 0.0);
 
   int continuous_steps_with_no_throttle = 0, threshold_of_continuous_steps_with_no_throttle = 20;
+  int push_forward = 0;
 
 
-  h.onMessage([&pid, &continuous_steps_with_no_throttle, &threshold_of_continuous_steps_with_no_throttle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([&pid, &continuous_steps_with_no_throttle, &threshold_of_continuous_steps_with_no_throttle, &push_forward](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -64,15 +65,29 @@ int main()
           pid.UpdateError(cte);
           steer_value = pid.TotalError();
 
+          double steer_value_min_value = -0.9, steer_value_max_value = 0.9;
+
           json msgJson;
           msgJson["steering_angle"] = steer_value;
-          if( ( steer_value > 0.9 || steer_value < -0.9) && (continuous_steps_with_no_throttle <= threshold_of_continuous_steps_with_no_throttle) ) {
-        	  throttle_value = 0.0;
-        	  continuous_steps_with_no_throttle++;
+
+          if( push_forward > 0 ){
+        	  throttle_value = 0.4;
+        	  push_forward--;
           }
-          else {
+          else if( steer_value >= steer_value_min_value && steer_value <= steer_value_max_value ){
         	  throttle_value = 0.3;
         	  continuous_steps_with_no_throttle = 0;
+          }
+          else if( ( steer_value > steer_value_max_value || steer_value < steer_value_min_value) ) {
+        	  if( continuous_steps_with_no_throttle <= threshold_of_continuous_steps_with_no_throttle){
+				  throttle_value = 0.0;
+				  continuous_steps_with_no_throttle++;
+        	  }
+        	  else {
+				  throttle_value = 0.4;
+				  continuous_steps_with_no_throttle = 0;
+				  push_forward = 5;
+        	  }
           }
 
           msgJson["throttle"] = throttle_value;
