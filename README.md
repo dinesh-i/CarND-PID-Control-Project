@@ -60,7 +60,5 @@ I could notice that the car moves slowly in some of the turns. The push forward 
 Video below shows the final result of the PID controller -> https://youtu.be/Ntdez9y3ioM
 
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Ntdez9y3ioM" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-
 
 
