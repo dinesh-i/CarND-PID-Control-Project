@@ -40,8 +40,38 @@ void PID::Init( double p[], double dp[] ) {
 
 }
 
+void PID::SetBestP(double p, double i, double d) {
+	best_p[0] = p;
+	best_p[1] = i;
+	best_p[2] = d;
+}
+
+void PID::PrintP() {
+	std::cout << "P values : [" << p[0] << ", " << p[1] << ", " << p[2] << "]" << std::endl;
+}
+
+void PID::PrintBestP() {
+	std::cout << "Best p values : [" << best_p[0] << ", " << best_p[1] << ", " << best_p[2] << "]" << std::endl;
+}
+
 void PID::ResetErrors() {
 	p_error = i_error = d_error = 0.0;
+}
+
+void PID::SetDpAtIndex(int index, double value) {
+	dp[index] = value;
+}
+
+double PID::GetDpAtIndex(int index) {
+	return dp[index];
+}
+
+void PID::SetPAtIndex(int index, double value) {
+	p[index] = value;
+}
+
+double PID::GetPAtIndex(int index) {
+	return p[index];
 }
 
 void PID::UpdateError(double cte, uWS::WebSocket<uWS::SERVER> ws) {

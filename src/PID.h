@@ -22,6 +22,8 @@ public:
   */
   double dp[3];
 
+  double best_p[3];
+
 //  Twiddle parameters
 	int max_trial_count;
 	int min_thresold_sum_of_dp;
@@ -55,7 +57,22 @@ public:
 
   void Init( double p[], double dp[] );
 
+  void SetBestP(double p, double i, double d);
+
+  void PrintP();
+
+  void PrintBestP();
+
+
   void ResetErrors();
+
+  void SetDpAtIndex(int index, double value);
+
+  double GetDpAtIndex(int index);
+
+  void SetPAtIndex(int index, double value);
+
+  double GetPAtIndex(int index);
 
   /*
   * Update the PID error variables given cross track error.
