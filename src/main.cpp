@@ -34,13 +34,88 @@ int main()
 
   PID pid;
   // TODO: Initialize the pid variable.
-  pid.Init(0.1, 0.0, 0.0);
+//  pid.Init(0.4, 0.001, 3.0);
+//  pid.Init(0.3, 0.001, 3.0);
+//  pid.Init(0.35, 0.0001, 3.0);
 
-  int continuous_steps_with_no_throttle = 0, threshold_of_continuous_steps_with_no_throttle = 20;
+//  double p[] = {0.35, 0.0001, 3.0};
+//  pid.Init(p);
+
+//  double p[] = {0.30, 0.0001, 3.0};
+
+//  double p[] = {0.7, 0.0002, 3.5};
+//  double p[] = {0.65, 0.0002, 3.5};
+//  double p[] = {0.60, 0.0002, 3.5};
+//  double p[] = {0.50, 0.0002, 4.0}; // Crossed the lane few times on curves
+//  double p[] = {0.40, 0.0002, 4.0}; // Crossed the lane at least 6 times before the bridge
+//  double p[] = {0.40, 0.0002, 3.5}; // Crossed the curve so much and got stuck
+//  double p[] = {0.40, 0.0002, 3.0};// Crossed the curve so much and got stuck
+
+//  double p[] = {0.40, 0.0002, 5.0};// Crossed the curve so much and got stuck
+
+//  double p[] = {0.7, 0.0002, 3.5}; // Better result. Vehicle is stuck sometimes due to extreme steering value change. Need to fine tune push forward.
+  	  	  	  	  	  	  	  	  // Almost completed the track and got stuck before the lap end
+//  double p[] = {0.7, 0.0002, 3.25}; // Crossed the curve so much and stagnant move after the bridge
+//  double p[] = {0.7, 0.0002, 3.75}; // Better result. COmpleted the lap with few cross on the lane ends.
+//  double p[] = {0.7, 0.0002, 4.0}; // Stagnant move before the end of the lap
+//  double p[] = {0.7, 0.0003, 3.75}; // Best Result so far. Crossed 1 lap properly and went till the bridge.
+//  double p[] = {0.7, 0.0004, 3.75}; // Better result. Almost completes the lap. But moves very slowly when extreme steering values are encountered
+
+//  double p[] = {0.7, 0.0003, 3.75};
+//  double p[] = {0.09, 0.0005, 1.693};
+
+//  double p[] = {0.20, 0.0001, 3.0};
+
+//  double p[] = {0.0, 0.0, 0.0}; // Initial values started in twiddle
+//  double dp[] = {1.0, 1.0, 1.0};
+//  double p[] = {2.1, -2.1, -0.1}; // Next values in twiddle
+//  double dp[] = {1.1, 1.1, 1.1};
+//  double p[] = {0.05, 0.0005, 1.5}; // Next values in twiddle
+//  double dp[] = {0.05, 0.0005, 0.05};
+//  double p[] = {1.2, 0, 1.5}; // Next values in twiddle
+//  double dp[] = {1.1, 0.9, 0.9};
+//  double p[] = {1.2, 0, 1.5}; // Next values in twiddle
+//  double dp[] = {1.1, 0.9, 0.9};
+//	int param_index_to_tune = 1;
+
+  double p[] = {0.7, 0.0003, 3.75};
+
+//  double p[] = {1.2, 0, 0.6}; // Next values in twiddle
+  double dp[] = {0.9, 0.9, 0.9};
+	int param_index_to_tune = 1;
+	double best_error = 7.29143;
+	bool first_run = false;
+
+  pid.Init(p, dp);
+
+  int continuous_steps_with_no_throttle = 0, threshold_of_continuous_steps_with_no_throttle = 30;
   int push_forward = 0;
+  double push_forward_throttle_value = 0.5;
+  int step = 0;
+  int extreme_steer_values_count_in_range = 0;
+  int extreme_steer_values_count_in_range_threshold = 25;
+  int extreme_steer_values_interval = 50;
+
+  //  Twiddle parameters
+	const int max_trial_count = 25;
+	const double min_thresold_sum_of_dp = 0.05;
+	const int initial_steps_to_skip = 700;
+	const int max_steps_to_compute_total_error = 2000;
+
+	int twiddle_current_step = 0;
+	int current_trial_count = 0;
 
 
-  h.onMessage([&pid, &continuous_steps_with_no_throttle, &threshold_of_continuous_steps_with_no_throttle, &push_forward](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+	double total_error = 0.0;
+	bool twiddle_is_enabled = false;
+	bool added_dp = false, subtracted_dp = false;
+
+//	double best_p[3] = {p[0], p[1], p[2]};
+//	best_p[0] = p[0];
+//	best_p[1] = p[1];
+//	best_p[2] = p[2];
+
+  h.onMessage([&pid, &continuous_steps_with_no_throttle, &threshold_of_continuous_steps_with_no_throttle, &step, &extreme_steer_values_count_in_range, &extreme_steer_values_interval, &extreme_steer_values_count_in_range_threshold, &push_forward, &push_forward_throttle_value, &max_trial_count, &min_thresold_sum_of_dp, &initial_steps_to_skip, &max_steps_to_compute_total_error, &twiddle_current_step, &current_trial_count, &param_index_to_tune, &total_error, &best_error, &first_run, &twiddle_is_enabled, &added_dp, &subtracted_dp](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -56,23 +131,168 @@ int main()
           double speed = std::stod(j[1]["speed"].get<std::string>());
           double angle = std::stod(j[1]["steering_angle"].get<std::string>());
           double steer_value, throttle_value;
+
+
+//          Twiddle
+      	if( twiddle_is_enabled ){
+
+//			  std::cout << "Inside twiddle_is_enabled# " << twiddle_is_enabled << "current_trial_count" << current_trial_count << std::endl;
+      		if( current_trial_count > max_trial_count || (pid.GetDpAtIndex(0)+pid.GetDpAtIndex(1)+pid.GetDpAtIndex(2)) < min_thresold_sum_of_dp){
+//      			print the result and disable twiddle
+//      			std::cout << "Best p values : [" << best_p[0] << ", " << best_p[1] << ", " << best_p[2] << "]" << std::endl;
+      			std::cout<< "Final Result " << std::endl;
+      			std::cout<< "-------------" << std::endl;
+      			pid.PrintBestP();
+      			pid.PrintDP();
+      			std::cout << "param_index_to_tune : " << param_index_to_tune << std::endl;
+      			std::cout << " Best Error : " << best_error << std::endl;
+
+      			twiddle_is_enabled = false;
+      		}
+
+      		if( twiddle_current_step > initial_steps_to_skip)
+      			total_error += pow(cte,2);
+
+      		if( twiddle_current_step == (initial_steps_to_skip + max_steps_to_compute_total_error)){
+//      			std::cout << "Trial# " << current_trial_count << ", Best p values : [" << best_p[0] << ", " << best_p[1] << ", " << best_p[2] << "]" << std::endl;
+      			std::cout << "Trial# " << current_trial_count << std::endl;
+
+      			if( first_run ){
+					std::cout << "First Run " << std::endl;
+      				first_run = false;
+      				best_error = total_error;
+
+      				total_error = 0.0;
+      				twiddle_current_step = 0;
+      				current_trial_count++;
+
+      				pid.SetBestP(pid.GetPAtIndex(0), pid.GetPAtIndex(1), pid.GetPAtIndex(2));
+      				pid.PrintBestP();
+      				pid.PrintDP();
+      				std::cout << "param_index_to_tune : " << param_index_to_tune << std::endl;
+      				std::cout << "Total Error : " << total_error << ", Best Error : " << best_error << std::endl;
+
+      			}
+      			else {
+					std::cout << "Not First Run" << std::endl;
+      				if(added_dp && !subtracted_dp){
+						std::cout << "Added But Not Subtracted" << std::endl;
+
+      					if(total_error < best_error){
+							best_error = total_error;
+							pid.SetBestP(pid.GetPAtIndex(0), pid.GetPAtIndex(1), pid.GetPAtIndex(2));
+							pid.PrintBestP();
+							pid.PrintDP();
+							std::cout << "param_index_to_tune : " << param_index_to_tune << std::endl;
+							std::cout << "Total Error : " << total_error << ", Best Error : " << best_error << std::endl;
+							pid.SetDpAtIndex(param_index_to_tune, 1.1);
+
+
+							param_index_to_tune = (param_index_to_tune + 1)%3;
+							twiddle_current_step = 0;
+							added_dp = false;
+							subtracted_dp = false;
+      					}
+      					else {
+//      						p[param_index_to_tune] -= 2 * dp[param_index_to_tune];
+      						pid.SetPAtIndex(param_index_to_tune, (pid.GetPAtIndex(param_index_to_tune) - 2*pid.GetDpAtIndex(param_index_to_tune)));
+      						std::cout << "Starting a New Robot " << std::endl;
+      						//  Make Robot
+//							pid.Init(p, dp);
+      						pid.ResetErrors();
+							added_dp = subtracted_dp = true;
+							total_error = 0.0;
+							twiddle_current_step = 0;
+							current_trial_count++;
+							pid.Restart(ws);
+      					}
+      				}
+      				else if(added_dp && subtracted_dp) {
+						std::cout << "Added And Subtracted" << std::endl;
+      					if(total_error < best_error){
+      						best_error = total_error;
+      						pid.SetBestP(pid.GetPAtIndex(0), pid.GetPAtIndex(1), pid.GetPAtIndex(2));
+      						pid.PrintBestP();
+      						pid.PrintDP();
+      						std::cout << "param_index_to_tune : " << param_index_to_tune << std::endl;
+      						std::cout << "Total Error : " << total_error << ", Best Error : " << best_error << std::endl;
+//							dp[param_index_to_tune] *= 1.1;
+							pid.SetDpAtIndex(param_index_to_tune, 1.1);
+
+							param_index_to_tune = (param_index_to_tune + 1)%3;
+							twiddle_current_step = 0;
+							added_dp = false;
+							subtracted_dp = false;
+      					}
+      					else {
+      						pid.SetPAtIndex(param_index_to_tune, (pid.GetDpAtIndex(param_index_to_tune) + pid.GetPAtIndex(param_index_to_tune)));
+      						pid.SetDpAtIndex(param_index_to_tune, 0.9);
+
+							param_index_to_tune = (param_index_to_tune + 1)%3;
+							twiddle_current_step = 0;
+							added_dp = false;
+							subtracted_dp = false;
+      					}
+      				}
+
+      			}
+      		}
+
+      		if( twiddle_current_step == 0 && !first_run && !added_dp && !subtracted_dp) {
+//      			p[param_index_to_tune] += dp[param_index_to_tune];
+      			pid.SetPAtIndex(param_index_to_tune, (pid.GetDpAtIndex(param_index_to_tune) + pid.GetPAtIndex(param_index_to_tune)));
+      			added_dp = true;
+				std::cout << "Starting a New Robot " << std::endl;
+				pid.PrintP();
+      			//  Make Robot
+//      			pid.Init(p, dp);
+				pid.ResetErrors();
+      			subtracted_dp = false;
+      			total_error = 0.0;
+      			twiddle_current_step = 0;
+				current_trial_count++;
+				pid.Restart(ws);
+      		}
+
+
+      		twiddle_current_step++;
+
+      		if( twiddle_current_step % 500 == 0)
+      			std::cout << "Current Step# " << twiddle_current_step << std::endl;
+
+      	}
+
+
+
+
+
+
           /*
           * TODO: Calcuate steering value here, remember the steering value is
           * [-1, 1].
           * NOTE: Feel free to play around with the throttle and speed. Maybe use
           * another PID controller to control the speed!
           */
-          pid.UpdateError(cte);
+          pid.UpdateError(cte, ws);
           steer_value = pid.TotalError();
 
           double steer_value_min_value = -0.9, steer_value_max_value = 0.9;
+          /*double steer_value_min_value = -1.0, steer_value_max_value = 1.0;*/
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
 
+//          Push forward is used in situation where the robot is not moving anywhere and is kind of stuck
           if( push_forward > 0 ){
-        	  throttle_value = 0.4;
+        	  throttle_value = push_forward_throttle_value;
+        	  if( push_forward == 1 ){
+        		  std::cout << "Pushed forward" << std::endl;
+        		  std::cout << "--------------" << std::endl;
+        	  }
         	  push_forward--;
+
+        	  steer_value = 0.0;
+
           }
           else if( steer_value >= steer_value_min_value && steer_value <= steer_value_max_value ){
         	  throttle_value = 0.3;
@@ -84,15 +304,43 @@ int main()
 				  continuous_steps_with_no_throttle++;
         	  }
         	  else {
+        		  std::cout << "Set to Push forward[No Throttle for threshold no. of times]" << std::endl;
 				  throttle_value = 0.4;
 				  continuous_steps_with_no_throttle = 0;
 				  push_forward = 5;
+				  push_forward_throttle_value = 0.5;
         	  }
           }
 
+//          Push forward if extreme steering values occur more than the allowed no. of times making the robot to stand still
+          if( step % extreme_steer_values_interval == 0){
+        	  extreme_steer_values_count_in_range = 0;
+          }
+
+          if( steer_value == -1.0 || steer_value == 1.0)
+        	  extreme_steer_values_count_in_range++;
+
+          if( extreme_steer_values_count_in_range >= extreme_steer_values_count_in_range_threshold){
+    		  std::cout << "Set to Push forward[Extreme Steer Values for threshold no. of times]" << std::endl;
+			  throttle_value = 0.3;
+			  continuous_steps_with_no_throttle = 0;
+			  push_forward = 5;
+			  push_forward_throttle_value = 0.5;
+
+			  if(speed < 2.0){
+				  std::cout << "Set throttle to high value to push harder" << std::endl;
+				  push_forward_throttle_value = 5.0;
+			  }
+
+			  extreme_steer_values_count_in_range = 0;
+    	  }
+
           msgJson["throttle"] = throttle_value;
           // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << "throttle : " << throttle_value << std::endl;
+//        std::cout << "CTE : " << cte << ", Steering : " << steer_value << ", Throttle : " << throttle_value << std::endl;
+
+
+          step++;
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
 //          std::cout << msg << std::endl;
