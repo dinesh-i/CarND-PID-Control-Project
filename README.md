@@ -37,62 +37,30 @@ There's an experimental patch for windows in this [PR](https://github.com/udacit
 
 Tips for setting up your environment can be found [here](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/f758c44c-5e40-4e01-93b5-1a82aa4e044f/concepts/23d376c7-0195-4276-bdf0-e02f1f3c665d)
 
-## Editor Settings
+## PID Controller
 
-We've purposefully kept editor configuration files out of this repo in order to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
+The “p”(proportional) parameter directs the steering value to be proportional and opposite to how far and in what direction the car is away from the centre of the road. 
 
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
+Setting only this value makes the car to oscillate a lot and doesn’t settle to the centre of the road. On curved roads, the car moves out of the road due to these oscillations.
 
-## Code Style
+The “d”(differential) parameter reduces the oscillation of the “p” controller by reducing the steering value based on the difference in the last and current cross-track-error(cte). The “pd” controller performs much better than the “p” controller.
 
-Please (do your best to) stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html).
+The “I”(integral) parameter helps to add little more to the steering value to handle scenarios like bias in the steering wheel alignment. However, this value was set to very small in this project and didn’t see major difference in behaviour due to this parameter compared to “p” and “d” parameters.
 
-## Project Instructions and Rubric
+## Parameter Tuning
 
-Note: regardless of the changes you make, your project must be buildable using
-cmake and make!
+The control parameters were tuned using a combination of manual tuning and twiddle. Referred to the projects of some of the senior students(like jeremy-shannon, sohonisaurabh) to get an idea on the tuned parameters and twiddle implementation. Those values were tuned to fit to the controller. 
 
-More information is only accessible by people who are already enrolled in Term 2
-of CarND. If you are enrolled, see [the project page](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/f1820894-8322-4bb3-81aa-b26b3c6dcbaf/lessons/e8235395-22dd-4b87-88e0-d108c5e5bbf4/concepts/6a4d8d42-6a04-4aa6-b284-1697c0fd6562)
-for instructions and the project rubric.
+There were many situations in which the car moved out of the road during turns. To handle this scenario, implemented a logic to set throttle value of zero whenever the steering values are out of the given threshold range. The basic concept of this and the below logic is taken from the Udacity's knowledge forum.
 
-## Hints!
+Whenever the car doesn’t move much due to continuously varying steering angles between opposite extremes or the throttle value set to zero in the above use case defined in above paragraph, I’ve implemented logic to push the vehicle forward for few steps on a given steering angle and throttle value.
 
-* You don't have to follow this directory structure, but if you do, your work
-  will span all of the .cpp files here. Keep an eye out for TODOs.
+I could notice that the car moves slowly in some of the turns. The push forward logic kicks in during such situations and move the car forward.
 
-## Call for IDE Profiles Pull Requests
+Video below shows the final result of the PID controller -> https://youtu.be/Ntdez9y3ioM
 
-Help your fellow students!
 
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. Similarly, we omitted IDE profiles in order to we ensure
-that students don't feel pressured to use one IDE or another.
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Ntdez9y3ioM" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 
-However! I'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE that you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
 
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
-
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
-
-Frankly, I've never been involved in a project with multiple IDE profiles
-before. I believe the best way to handle this would be to keep them out of the
-repo root to avoid clutter. My expectation is that most profiles will include
-instructions to copy files to a new location to get picked up by the IDE, but
-that's just a guess.
-
-One last note here: regardless of the IDE used, every submitted project must
-still be compilable with cmake and make./
-
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
 
