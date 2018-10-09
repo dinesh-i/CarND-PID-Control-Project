@@ -49,7 +49,7 @@ The “I”(integral) parameter helps to add little more to the steering value t
 
 ## Parameter Tuning
 
-The control parameters were tuned using a combination of manual tuning and twiddle. Referred to the projects of some of the senior students(like jeremy-shannon, sohonisaurabh) to get an idea on the tuned parameters and twiddle implementation. Those values were tuned to fit to the controller. 
+The control parameters were tuned using a combination of manual tuning and twiddle. Referred to the projects of some of the senior students(like jeremy-shannon, sohonisaurabh) to get an idea on the tuned parameters and twiddle implementation. Those values were tuned further in addition to the solution of the use cases defined below. 
 
 The final parameters chosen are P = 0.7, I = 0.0003 and D = 3.75.
 
