@@ -51,6 +51,8 @@ The “I”(integral) parameter helps to add little more to the steering value t
 
 The control parameters were tuned using a combination of manual tuning and twiddle. Referred to the projects of some of the senior students(like jeremy-shannon, sohonisaurabh) to get an idea on the tuned parameters and twiddle implementation. Those values were tuned to fit to the controller. 
 
+The final parameters chosen are P = 0.7, I = 0.0003 and D = 3.75.
+
 There were many situations in which the car moved out of the road during turns. To handle this scenario, implemented a logic to set throttle value of zero whenever the steering values are out of the given threshold range. The basic concept of this and the below logic is taken from the Udacity's knowledge forum.
 
 Whenever the car doesn’t move much due to continuously varying steering angles between opposite extremes or the throttle value set to zero in the above use case defined in above paragraph, I’ve implemented logic to push the vehicle forward for few steps on a given steering angle and throttle value.
